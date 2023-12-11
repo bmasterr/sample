@@ -1,114 +1,73 @@
-
-
 # AICUP
 
 Description
+本項目是一個使用 EleutherAI 的 Pythia模型進行自然語言處理的示例。
 
-
-<!-- PROJECT LOGO -->
-<br />
-
-<p align="center">
-  <h3 align="center">README範本</h3>
-  <p align="center">
-    一個"完美的"README範本去快速開始你的專案！
-    <br />
-    <a href="https://github.com/your_github_name/your_repository"><strong>探索本專案的文檔 »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/your_github_name/your_repository">查看Demo</a>
-    ·
-    <a href="https://github.com/your_github_name/your_repository/issues">報告Bug</a>
-    ·
-    <a href="https://github.com/your_github_name/your_repository/issues">提出新特性</a>
-  </p>
-
-</p>
-
-
- 本篇README.md面向開發者
- 
-## 目錄
-
-- [上手指南](#上手指南)
-  - [開發前的配置要求](#開發前的配置要求)
-  - [安裝步驟](#安裝步驟)
-- [檔目錄說明](#檔目錄說明)
-- [開發的架構](#開發的架構)
-- [部署](#部署)
-- [使用到的框架](#使用到的框架)
-- [版本控制](#版本控制)
 
 ### 上手指南
 
-“/your_github_name/your_repository”
+Google Colab上安裝和配置Python環境，以運行基於Python 3.x的機器學習和自然語言處理腳本。
 
 
 
 ###### 開發前的配置要求
 
-1. xxxxx x.x.x
-2. xxxxx x.x.x
+平台: 推薦使用Google Colab，因為它提供了大量的計算資源。
+Python版本: Python 3.x。
 
 ###### **安裝步驟**
 
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
+!pip install transformers
+!pip install datasets
+######**模型選擇**
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-```sh
-git clone https://github.com/your_github_name/your_repository.git
-```
+plm = "EleutherAI/pythia-410m-deduped" #此處可以修改你想要的模型
+bos = '<|endoftext|>'
+eos = '<|END|>'
+pad = '<|pad|>'
+sep ='\n\n####\n\n'
 
-### 檔目錄說明
-eg:
+special_tokens_dict = {'eos_token': eos, 'bos_token': bos, 'pad_token': pad, 'sep_token': sep}
 
-```
-filetree 
-├── ARCHITECTURE.md
-├── LICENSE.txt
-├── README.md
-├── /account/
-├── /bbs/
-├── /docs/
-│  ├── /rules/
-│  │  ├── backend.txt
-│  │  └── frontend.txt
-├── manage.py
-├── /oa/
-├── /static/
-├── /templates/
-├── useless.md
-└── /util/
-
-```
+tokenizer = AutoTokenizer.from_pretrained(plm, revision="step3000")
+num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
+tokenizer.padding_side = 'left'
 
 
+######**模型選擇**
+主要用於測試訓練好的模型，測試它在給定的seed text基礎上生成文本。這個過程可以幫助評估模型的表現。
+import torch
+from tqdm import tqdm#, tqdm_notebook
+from torch.nn import functional as F
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def sample_text(model, tokenizer, seed, n_words=20):
+    model = model.to(device)
+    model.eval()
+    text = tokenizer.encode(seed)
+    inputs, past_key_values = torch.tensor([text]), None
+    with torch.no_grad():
+        for _ in tqdm(range(n_words)):
+            out = model(inputs.to(device), past_key_values=past_key_values)
+            logits = out.logits
+            past_key_values = out.past_key_values
+            log_probs = F.softmax(logits[:, -1], dim=-1)
+            inputs = torch.multinomial(log_probs, 1)
+            text.append(inputs.item())
+            if tokenizer.decode(inputs.item()) == eos:
+                break
 
 
+    return tokenizer.decode(text)
 
-### 開發的架構 
-
-請閱讀……
-
-### 部署
-
-暫無
-
-### 使用到的框架
-
-- [xxxxxxx](https://getbootstrap.com)
-- [xxxxxxx](https://jquery.com)
-- [xxxxxxx](https://laravel.com)
-
-
-### 版本控制
-
-該專案使用Git進行版本管理。您可以在repository參看當前可用版本。
+sample_text(model, tokenizer, seed=f"{bos} DR AADLAND ABRAHAM {sep}")
 
 ### 作者
-
-xxx@xxxx
-
+c110154217@nkust.edu.tw
+c110154244@nkust.edu.tw
+https://colab.research.google.com/drive/1lXSfSHWIK8y7COfMTSMNjVgU3O9-B5bG?authuser=1#scrollTo=iDaHQrOkhzPQ
  *您也可以在貢獻者名單中參看所有參與該專案的開發者。*
 
 ### 版權說明
